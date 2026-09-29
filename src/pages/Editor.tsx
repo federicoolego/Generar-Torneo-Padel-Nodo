@@ -10,8 +10,9 @@ import { PasoDatos, PasoParejas } from '../components/pasos/Datos'
 import PasoZonas from '../components/pasos/Zonas'
 import PasoHorariosZona from '../components/pasos/HorariosZona'
 import PasoPlayoff from '../components/pasos/Playoff'
+import PasoPartidos from '../components/pasos/Partidos'
 
-const PASOS = ['Torneo', 'Parejas', 'Zonas', 'Horarios', 'Playoff', 'Imágenes'] as const
+const PASOS = ['Torneo', 'Parejas', 'Zonas', 'Horarios', 'Playoff', 'Imágenes', 'Partidos'] as const
 
 export default function Editor({ id, onVolver }: { id: string; onVolver: () => void }) {
   const [cat, setCat] = useState<Categoria>(() => cargarTodas().find((c) => c.id === id) ?? { ...nuevaCategoria(), id })
@@ -46,6 +47,7 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
         zonasOk,
         zonasOk && sinHorarioZ === 0,
         cuadroOk && sinHorarioP === 0,
+        zonasOk,
         zonasOk,
       ],
       avisos: [
@@ -85,6 +87,7 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
       {paso === 3 && <PasoHorariosZona cat={cat} cambiar={cambiar} />}
       {paso === 4 && <PasoPlayoff cat={cat} cambiar={cambiar} />}
       {paso === 5 && <Compartir cat={cat} avisos={estado.avisos} />}
+      {paso === 6 && <PasoPartidos cat={cat} />}
 
       <div className="mt-8 flex justify-between gap-3">
         <Button variante="secundario" onClick={() => setPaso(paso - 1)} disabled={paso === 0}><ArrowLeft className="h-4 w-4" aria-hidden /> Anterior</Button>
