@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Share2 } from 'lucide-react'
 import { cargarTodas, guardar } from '../lib/almacen'
 import {
-  erroresCuadro, firmaZonas, horarioCompleto, nuevaCategoria, partidosDeZona, rondasPlayoff, type Categoria,
+  MAX_PAREJAS, MIN_PAREJAS, erroresCuadro, firmaZonas, horarioCompleto, nuevaCategoria, partidosDeZona, rangoFechas, rondasPlayoff, type Categoria,
 } from '../lib/torneo'
 import { Button, Modal } from '../components/ui'
 import Compartir from '../components/Compartir'
@@ -41,8 +41,8 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
     const sinHorarioP = primera.filter((p) => !horarioCompleto(cat.horariosPlayoff[p.key])).length
     return {
       ok: [
-        !!cat.torneo.trim() && !!cat.categoria.trim(),
-        cat.parejas.length >= 3,
+        !!cat.torneo.trim() && !!cat.categoria.trim() && !!cat.fechaInicio && !!cat.fechaFin && cat.fechaFin >= cat.fechaInicio,
+        cat.parejas.length >= MIN_PAREJAS && cat.parejas.length <= MAX_PAREJAS,
         zonasOk,
         zonasOk && sinHorarioZ === 0,
         cuadroOk && sinHorarioP === 0,
@@ -61,9 +61,11 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
 
   return (
     <>
-      <button onClick={onVolver} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-cancha"><ArrowLeft className="h-4 w-4" aria-hidden /> Categorías</button>
-      <h1 className="font-display text-4xl font-bold leading-none">{cat.categoria || 'Nueva categoría'}</h1>
-      <p className="mb-5 mt-1 text-sm text-noche/60">{cat.torneo || 'Sin nombre de torneo'} · {cat.parejas.length} parejas</p>
+      <button onClick={onVolver} className="mb-3 inline-flex items-center gap-1 text-sm font-semibold text-cancha"><ArrowLeft className="h-4 w-4" aria-hidden /> Torneos</button>
+      <h1 className="font-display text-4xl font-bold leading-none">{cat.torneo || 'Nuevo torneo'}</h1>
+      <p className="mb-5 mt-1 text-sm text-noche/60">
+        {[cat.categoria || 'Sin categoría', rangoFechas(cat.fechaInicio, cat.fechaFin), `${cat.parejas.length} parejas`].filter(Boolean).join(' · ')}
+      </p>
 
       <nav className="mb-6 flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-noche/10" aria-label="Pasos">
         {PASOS.map((t, i) => (

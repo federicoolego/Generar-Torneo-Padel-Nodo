@@ -73,7 +73,7 @@ export default function PasoPlayoff({ cat, cambiar }: Props) {
               <h3 className="font-display text-xl font-semibold">Días y horarios</h3>
               <p className="text-sm text-noche/65">Obligatorio en la primera ronda; en las siguientes es opcional.</p>
             </div>
-            <CompletarHorarios grupos={grupos} actuales={cat.horariosPlayoff} onAplicar={(h) => cambiar((c) => ({ ...c, horariosPlayoff: h }))} />
+            <CompletarHorarios grupos={grupos} fechaInicial={cat.fechaFin || cat.fechaInicio} actuales={cat.horariosPlayoff} onAplicar={(h) => cambiar((c) => ({ ...c, horariosPlayoff: h }))} />
           </div>
           <div className="space-y-5">
             {rondas.map((r, ri) => r.some((p) => !p.bye) && (

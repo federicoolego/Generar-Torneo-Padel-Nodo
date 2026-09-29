@@ -1,14 +1,21 @@
 // Lógica de zonas y playoff (misma que la app de torneos, pero en memoria)
 
-export interface Horario { fecha: string; hora: string; cancha: string }
+/** `cancha` quedó de versiones anteriores: ya no se carga ni se muestra */
+export interface Horario { fecha: string; hora: string; cancha?: string }
 export interface Pareja { id: string; nombre: string }
 /** Un lado de primera ronda del playoff: posición `pos` de la zona número `zona` (0 = A) */
 export interface Slot { zona: number; pos: number }
 
+/** Un torneo (de una categoría): datos, parejas, zonas y playoff */
 export interface Categoria {
   id: string
   torneo: string
+  /** YYYY-MM-DD */
+  fechaInicio: string
+  fechaFin: string
   categoria: string
+  /** texto libre: formato de partidos, reglas, etc. */
+  observacion: string
   parejas: Pareja[]
   /** ids de parejas por zona, en orden de posición (en zonas de 4: 1 vs 4 y 2 vs 3) */
   zonas: string[][]
@@ -22,10 +29,17 @@ export interface Categoria {
 }
 
 export const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+/** Completa campos que no existían en torneos guardados con versiones anteriores */
+export const normalizar = (c: Categoria): Categoria =>
+  ({ ...c, fechaInicio: c.fechaInicio ?? '', fechaFin: c.fechaFin ?? '', observacion: c.observacion ?? '' })
+
+export const MIN_PAREJAS = 6
+export const MAX_PAREJAS = 24
+
 export const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now())
 
 export function nuevaCategoria(): Categoria {
-  return { id: nuevoId(), torneo: '', categoria: '', parejas: [], zonas: [], horariosZona: {}, cuadro: null, horariosPlayoff: {}, actualizado: Date.now() }
+  return { id: nuevoId(), torneo: '', fechaInicio: '', fechaFin: '', categoria: '', observacion: '', parejas: [], zonas: [], horariosZona: {}, cuadro: null, horariosPlayoff: {}, actualizado: Date.now() }
 }
 
 export const CATEGORIAS_SUGERIDAS = [
@@ -63,21 +77,22 @@ export function sugerirZonas(ids: string[], aleatorio: boolean): string[][] {
   return out
 }
 
-export interface PartidoZona { key: string; zona: number; numero: number; titulo: string; a: string; b: string }
+export interface PartidoZona { key: string; zona: number; numero: number; titulo: string; codigo: string; a: string; b: string }
 
 /** Partidos de una zona. Zona de 3: todos contra todos. Zona de 4: 1v4, 2v3, ganadores y perdedores */
 export function partidosDeZona(zona: string[], zi: number, nombre: (id: string) => string): PartidoZona[] {
   const n = (i: number) => nombre(zona[i])
-  const p = (numero: number, titulo: string, a: string, b: string): PartidoZona => ({ key: `${zi}-${numero}`, zona: zi, numero, titulo, a, b })
+  const p = (numero: number, titulo: string, codigo: string, a: string, b: string): PartidoZona =>
+    ({ key: `${zi}-${numero}`, zona: zi, numero, titulo, codigo, a, b })
   if (zona.length === 3) {
-    return [p(1, 'Partido 1', n(0), n(1)), p(2, 'Partido 2', n(0), n(2)), p(3, 'Partido 3', n(1), n(2))]
+    return [p(1, 'Partido 1', '1 v 2', n(0), n(1)), p(2, 'Partido 2', '1 v 3', n(0), n(2)), p(3, 'Partido 3', '2 v 3', n(1), n(2))]
   }
   if (zona.length === 4) {
     return [
-      p(1, 'Partido 1', n(0), n(3)),
-      p(2, 'Partido 2', n(1), n(2)),
-      p(3, 'Ganadores', 'Ganador P1', 'Ganador P2'),
-      p(4, 'Perdedores', 'Perdedor P1', 'Perdedor P2'),
+      p(1, 'Partido 1', '1 v 4', n(0), n(3)),
+      p(2, 'Partido 2', '2 v 3', n(1), n(2)),
+      p(3, 'Ganadores', 'G v G', 'Ganador P1', 'Ganador P2'),
+      p(4, 'Perdedores', 'P v P', 'Perdedor P1', 'Perdedor P2'),
     ]
   }
   return []
@@ -208,16 +223,25 @@ export function rondasPlayoff(cuadro: (Slot | null)[][]): PartidoPlayoff[][] {
 // ------------------------------------------------------------------ fechas
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-/** "Vie 26/09 · 19:00 · Cancha 1" (o lo que haya cargado) */
+const DIAS_LARGOS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+const aFecha = (f: string) => new Date(`${f}T12:00:00`)
+/** "Vie 26/09" */
+export const diaCorto = (f: string) => {
+  const d = aFecha(f)
+  return `${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+/** "Viernes 26" */
+export const diaLargo = (f: string) => { const d = aFecha(f); return `${DIAS_LARGOS[d.getDay()]} ${d.getDate()}` }
+/** "Vie 25/09 al Sáb 26/09" (o un solo día) */
+export const rangoFechas = (ini: string, fin: string) =>
+  !ini ? '' : !fin || fin === ini ? diaCorto(ini) : `${diaCorto(ini)} al ${diaCorto(fin)}`
+
+/** "Vie 26/09 · 19:00 hs" */
 export function textoHorario(h: Horario | undefined, corto = false): string {
   if (!h || (!h.fecha && !h.hora)) return corto ? 'A confirmar' : 'Día y horario a confirmar'
   const partes: string[] = []
-  if (h.fecha) {
-    const d = new Date(`${h.fecha}T12:00:00`)
-    partes.push(`${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`)
-  }
+  if (h.fecha) partes.push(diaCorto(h.fecha))
   if (h.hora) partes.push(corto ? h.hora : `${h.hora} hs`)
-  if (h.cancha) partes.push(corto ? h.cancha.replace(/^Cancha\s*/i, 'C') : h.cancha)
   return partes.join(' · ')
 }
 export const horarioCompleto = (h: Horario | undefined) => !!h?.fecha && !!h?.hora
@@ -229,5 +253,3 @@ export function sumarMinutos(fecha: string, hora: string, min: number): { fecha:
   const p = (n: number) => String(n).padStart(2, '0')
   return { fecha: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`, hora: `${p(d.getHours())}:${p(d.getMinutes())}` }
 }
-
-export const CANCHAS = ['Cancha 1', 'Cancha 2', 'Cancha 3']

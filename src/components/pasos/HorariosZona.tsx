@@ -14,8 +14,8 @@ export default function PasoHorariosZona({ cat, cambiar }: Props) {
   return (
     <div className="space-y-4">
       <Card className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-xl text-sm text-noche/75">Asigná día y hora a cada partido. La cancha es opcional. Con “Completar automático” se reparten en turnos y después ajustás a mano.</p>
-        <CompletarHorarios grupos={grupos} actuales={cat.horariosZona} onAplicar={(h) => cambiar((c) => ({ ...c, horariosZona: h }))} />
+        <p className="max-w-xl text-sm text-noche/75">Asigná día y hora a cada partido. Con “Completar automático” se reparten en turnos y después ajustás a mano.</p>
+        <CompletarHorarios grupos={grupos} fechaInicial={cat.fechaInicio} actuales={cat.horariosZona} onAplicar={(h) => cambiar((c) => ({ ...c, horariosZona: h }))} />
       </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         {porZona.map((ps, zi) => (
