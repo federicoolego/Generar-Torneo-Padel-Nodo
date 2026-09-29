@@ -228,6 +228,17 @@ function resumenZonas(cat: Categoria): string {
   return [...dias, clas ? `Clasifican ${clas}` : ''].filter(Boolean).join(' · ')
 }
 
+/** "Sábado 3 desde las 13:00 · Domingo 4 desde las 10:00" (primer partido de playoff de cada día) */
+function resumenPlayoff(cat: Categoria): string {
+  if (!cat.cuadro) return ''
+  const porDia = new Map<string, string>()
+  rondasPlayoff(cat.cuadro).flat().filter((p) => !p.bye).forEach((p) => {
+    const h = cat.horariosPlayoff[p.key]
+    if (h?.fecha && h.hora && (!porDia.has(h.fecha) || h.hora < porDia.get(h.fecha)!)) porDia.set(h.fecha, h.hora)
+  })
+  return [...porDia.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([f, h]) => `${diaLargo(f)} desde las ${h}`).join(' · ')
+}
+
 export async function imagenesZonas(cat: Categoria): Promise<Blob[]> {
   await fuentes()
   const img = await logo()
@@ -290,7 +301,7 @@ export async function imagenPlayoff(cat: Categoria): Promise<Blob> {
   const altoBracket = n0 * slot
   const medir = document.createElement('canvas').getContext('2d')!
   const altoEnc = encabezado(medir, img, cat, 'Playoff', true)
-  const textos = [{ texto: cat.observacion }]
+  const textos = [{ texto: resumenPlayoff(cat), fuerte: true }, { texto: cat.observacion }]
   const altoBandas = bandas(medir, 0, textos, true)
   const topBracket = altoEnc + altoBandas + 48 + 50
 
