@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Check, Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
-  CATEGORIAS_SUGERIDAS, MAX_PAREJAS, MIN_PAREJAS, clavePareja, jugadoresDe, nombrePropio, nuevoId, type Categoria, type Pareja,
+  CATEGORIAS_SUGERIDAS, MAX_PAREJAS, MIN_PAREJAS, clavePareja, formatoPesos, jugadoresDe, nombrePropio, nuevoId, type Categoria, type Pareja,
 } from '../../lib/torneo'
 import { Alerta, Button, Card, Field, Input, Textarea } from '../ui'
 
@@ -25,6 +25,10 @@ export function PasoDatos({ cat, cambiar }: Props) {
       <Field label="Categoría *" hint="Elegí de la lista o escribí la que quieras.">
         <Input value={cat.categoria} onChange={(e) => cambiar((c) => ({ ...c, categoria: e.target.value }))} list="categorias" placeholder="Ej: 7ma Damas, Suma 12 Mixto" />
         <datalist id="categorias">{CATEGORIAS_SUGERIDAS.map((x) => <option key={x} value={x} />)}</datalist>
+      </Field>
+      <Field label="Inscripción por jugador" hint="Opcional. Si la completás, aparece en las imágenes.">
+        <Input inputMode="numeric" value={formatoPesos(cat.inscripcion)} placeholder="Ej: $17.000"
+          onChange={(e) => cambiar((c) => ({ ...c, inscripcion: e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9) }))} />
       </Field>
       <Field label="Observación" hint="Opcional. Aparece en las imágenes.">
         <Textarea rows={3} value={cat.observacion} onChange={(e) => cambiar((c) => ({ ...c, observacion: e.target.value }))}

@@ -1,5 +1,5 @@
 // Genera las imágenes (PNG) de zonas y playoff dibujando en un <canvas>
-import { LETRAS, diaLargo, partidosDeZona, rangoFechas, rondasPlayoff, textoHorario, type Categoria } from './torneo'
+import { LETRAS, diaLargo, formatoPesos, partidosDeZona, rangoFechas, rondasPlayoff, textoHorario, type Categoria } from './torneo'
 
 const C = {
   noche: '#042D29',
@@ -66,38 +66,88 @@ function rect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h:
   if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke() }
 }
 
-/** Encabezado con logo, torneo, categoría, fechas y el título de la imagen. Devuelve la altura usada */
+// ------------------------------------------------------------------ íconos (trazos de lucide, 24×24)
+type Nodo = ['path', string] | ['rect', number, number, number, number, number] | ['circle', number, number, number]
+const ICONOS: Record<'trofeo' | 'medalla' | 'calendario' | 'ticket', Nodo[]> = {
+  trofeo: [
+    ['path', 'M6 9H4.5a2.5 2.5 0 0 1 0-5H6'], ['path', 'M18 9h1.5a2.5 2.5 0 0 0 0-5H18'], ['path', 'M4 22h16'],
+    ['path', 'M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22'],
+    ['path', 'M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22'], ['path', 'M18 2H6v7a6 6 0 0 0 12 0V2Z'],
+  ],
+  medalla: [['path', 'M11 12 5.12 2.2'], ['path', 'm13 12 5.88-9.8'], ['path', 'M8 7h8'], ['circle', 12, 17, 5], ['path', 'M12 18v-2h-.5']],
+  calendario: [
+    ['path', 'M8 2v4'], ['path', 'M16 2v4'], ['rect', 3, 4, 18, 18, 2], ['path', 'M3 10h18'],
+    ['path', 'M8 14h.01'], ['path', 'M12 14h.01'], ['path', 'M16 14h.01'], ['path', 'M8 18h.01'], ['path', 'M12 18h.01'], ['path', 'M16 18h.01'],
+  ],
+  ticket: [
+    ['path', 'M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z'],
+    ['path', 'M13 5v2'], ['path', 'M13 17v2'], ['path', 'M13 11v2'],
+  ],
+}
+
+/** Dibuja un ícono de trazo de `tam` px con su esquina superior izquierda en (x, y) */
+function icono(ctx: CanvasRenderingContext2D, nombre: keyof typeof ICONOS, x: number, y: number, tam: number, color: string) {
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.scale(tam / 24, tam / 24)
+  ctx.strokeStyle = color
+  ctx.lineWidth = 2.2
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  for (const n of ICONOS[nombre]) {
+    if (n[0] === 'path') ctx.stroke(new Path2D(n[1]))
+    else if (n[0] === 'rect') { ctx.beginPath(); ctx.roundRect(n[1], n[2], n[3], n[4], n[5]); ctx.stroke() }
+    else { ctx.beginPath(); ctx.arc(n[1], n[2], n[3], 0, Math.PI * 2); ctx.stroke() }
+  }
+  ctx.restore()
+}
+
+/** Encabezado con logo, torneo, categoría, fechas, inscripción y el título de la imagen. Devuelve la altura usada */
 function encabezado(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cat: Categoria, titulo: string, medir = false): number {
   const logoTam = 168
   const x = MARGEN + logoTam + 36
   const anchoTexto = ANCHO - x - MARGEN
+  const sangria = 62   // lugar para el ícono del título
   ctx.font = `700 64px ${DISPLAY}`
-  const lt = lineas(ctx, cat.torneo || 'Torneo', anchoTexto)
+  const lt = lineas(ctx, cat.torneo || 'Torneo', anchoTexto - sangria)
   const fechas = rangoFechas(cat.fechaInicio, cat.fechaFin)
-  const alto = Math.max(logoTam + 2 * 44, 44 + lt.length * 64 + 56 + (fechas ? 40 : 0) + 20 + 44 + 44)
+  const insc = cat.inscripcion ? `Inscripción ${formatoPesos(cat.inscripcion)} por jugador` : ''
+  const alto = Math.max(logoTam + 2 * 44, 44 + lt.length * 64 + 56 + (fechas ? 42 : 0) + (insc ? 42 : 0) + 20 + 44 + 44)
   if (medir) return alto
   ctx.fillStyle = C.noche
   ctx.fillRect(0, 0, ANCHO, alto)
   ctx.drawImage(img, MARGEN, (alto - logoTam) / 2, logoTam, logoTam)
   let y = 44 + 56
+  // título con trofeo
+  icono(ctx, 'trofeo', x, y - 50, 50, C.lima)
   ctx.fillStyle = C.blanco
   ctx.font = `700 64px ${DISPLAY}`
-  for (const l of lt) { ctx.fillText(l, x, y); y += 64 }
+  for (const l of lt) { ctx.fillText(l, x + sangria, y); y += 64 }
+  // categoría con medalla
+  icono(ctx, 'medalla', x + 6, y - 32, 38, C.lima)
   ctx.font = `600 48px ${DISPLAY}`
   ctx.fillStyle = C.lima
-  ctx.fillText(recortar(ctx, cat.categoria || 'Categoría', anchoTexto), x, y + 6)
+  ctx.fillText(recortar(ctx, cat.categoria || 'Categoría', anchoTexto - sangria), x + sangria, y + 6)
   y += 30
+  ctx.font = `500 28px ${TEXTO}`
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'
   if (fechas) {
-    ctx.font = `500 28px ${TEXTO}`
-    ctx.fillStyle = 'rgba(255,255,255,0.8)'
-    ctx.fillText(recortar(ctx, fechas, anchoTexto), x, y + 32)
-    y += 44
+    icono(ctx, 'calendario', x + 12, y + 8, 28, C.lima)
+    ctx.fillText(recortar(ctx, fechas, anchoTexto - sangria), x + sangria, y + 32)
+    y += 42
+  }
+  if (insc) {
+    icono(ctx, 'ticket', x + 12, y + 8, 28, C.lima)
+    ctx.font = `600 28px ${TEXTO}`
+    ctx.fillStyle = C.blanco
+    ctx.fillText(recortar(ctx, insc, anchoTexto - sangria), x + sangria, y + 32)
+    y += 42
   }
   ctx.font = `700 26px ${TEXTO}`
   const w = ctx.measureText(titulo.toUpperCase()).width + 36
-  rect(ctx, x, y, w, 44, 22, C.lima)
+  rect(ctx, x + sangria, y + 4, w, 44, 22, C.lima)
   ctx.fillStyle = C.noche
-  ctx.fillText(titulo.toUpperCase(), x + 18, y + 31)
+  ctx.fillText(titulo.toUpperCase(), x + sangria + 18, y + 35)
   return alto
 }
 

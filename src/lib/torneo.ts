@@ -24,6 +24,8 @@ export interface Categoria {
   categoria: string
   /** texto libre: formato de partidos, reglas, etc. */
   observacion: string
+  /** monto de inscripción por jugador, solo dígitos ("17000"); vacío = no se muestra */
+  inscripcion: string
   parejas: Pareja[]
   /** ids de parejas por zona, en orden de posición (en zonas de 4: 1 vs 4 y 2 vs 3) */
   zonas: string[][]
@@ -39,7 +41,10 @@ export interface Categoria {
 export const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 /** Completa campos que no existían en torneos guardados con versiones anteriores */
 export const normalizar = (c: Categoria): Categoria =>
-  ({ ...c, fechaInicio: c.fechaInicio ?? '', fechaFin: c.fechaFin ?? '', observacion: c.observacion ?? '' })
+  ({ ...c, fechaInicio: c.fechaInicio ?? '', fechaFin: c.fechaFin ?? '', observacion: c.observacion ?? '', inscripcion: c.inscripcion ?? '' })
+
+/** "17000" → "$17.000" */
+export const formatoPesos = (v: string) => (v ? `$${Number(v).toLocaleString('es-AR')}` : '')
 
 export const MIN_PAREJAS = 6
 export const MAX_PAREJAS = 24
@@ -47,7 +52,7 @@ export const MAX_PAREJAS = 24
 export const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now())
 
 export function nuevaCategoria(): Categoria {
-  return { id: nuevoId(), torneo: '', fechaInicio: '', fechaFin: '', categoria: '', observacion: '', parejas: [], zonas: [], horariosZona: {}, cuadro: null, horariosPlayoff: {}, actualizado: Date.now() }
+  return { id: nuevoId(), torneo: '', fechaInicio: '', fechaFin: '', categoria: '', observacion: '', inscripcion: '', parejas: [], zonas: [], horariosZona: {}, cuadro: null, horariosPlayoff: {}, actualizado: Date.now() }
 }
 
 export const CATEGORIAS_SUGERIDAS = [
