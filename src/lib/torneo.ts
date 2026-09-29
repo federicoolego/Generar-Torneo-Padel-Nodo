@@ -2,7 +2,15 @@
 
 /** `cancha` quedó de versiones anteriores: ya no se carga ni se muestra */
 export interface Horario { fecha: string; hora: string; cancha?: string }
-export interface Pareja { id: string; nombre: string }
+export interface Pareja {
+  id: string
+  /** "Juan Perez / Ricardo Lopez" (es lo que se muestra en zonas e imágenes) */
+  nombre: string
+  jugador1?: string
+  jugador2?: string
+  /** problemas de horario de la pareja (vacío si no tiene) */
+  horario?: string
+}
 /** Un lado de primera ronda del playoff: posición `pos` de la zona número `zona` (0 = A) */
 export interface Slot { zona: number; pos: number }
 
@@ -47,6 +55,28 @@ export const CATEGORIAS_SUGERIDAS = [
   ...['4ta', '5ta', '6ta', '7ma'].map((c) => `${c} Damas`),
   ...[8, 9, 10, 11, 12, 13, 14].flatMap((s) => [`Suma ${s} Caballeros`, `Suma ${s} Damas`, `Suma ${s} Mixto`]),
 ]
+
+/** "JUaN  perez" → "Juan Perez" (también "maría-josé" → "María-José") */
+export function nombrePropio(t: string): string {
+  return t
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('es')
+    .replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, l: string) => sep + l.toLocaleUpperCase('es'))
+}
+
+/** Clave para comparar jugadores sin importar mayúsculas, tildes ni espacios */
+const claveJugador = (t: string) => t.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+/** Misma pareja = mismos dos jugadores, en cualquier orden */
+export const clavePareja = (j1: string, j2: string) => [claveJugador(j1), claveJugador(j2)].sort().join('|')
+
+/** Jugadores de una pareja (las guardadas antes solo tenían `nombre`) */
+export function jugadoresDe(p: Pareja): [string, string] {
+  if (p.jugador1 !== undefined && p.jugador2 !== undefined) return [p.jugador1, p.jugador2]
+  const [a = '', ...b] = p.nombre.split(' / ')
+  return [a, b.join(' / ')]
+}
 
 /** "A / B; C / D" o una por línea */
 export function parsearParejas(texto: string): string[] {

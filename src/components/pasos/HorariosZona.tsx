@@ -1,6 +1,7 @@
 import { LETRAS, partidosDeZona, type Categoria, type Horario } from '../../lib/torneo'
 import { Card } from '../ui'
 import { CompletarHorarios, EditorHorario } from '../Horarios'
+import { ProblemaHorario } from './Datos'
 
 type Props = { cat: Categoria; cambiar: (f: (c: Categoria) => Categoria) => void }
 
@@ -21,6 +22,16 @@ export default function PasoHorariosZona({ cat, cambiar }: Props) {
         {porZona.map((ps, zi) => (
           <section key={zi} className="overflow-hidden rounded-xl bg-white ring-1 ring-noche/10">
             <h3 className="bg-noche px-4 py-2 font-display text-lg font-bold text-white">Zona {LETRAS[zi]}</h3>
+            {cat.zonas[zi].some((id) => cat.parejas.find((p) => p.id === id)?.horario) && (
+              <div className="space-y-1 border-b border-noche/5 p-3">
+                {cat.zonas[zi].map((id) => {
+                  const p = cat.parejas.find((x) => x.id === id)
+                  return p?.horario ? (
+                    <div key={id} className="text-xs"><span className="font-semibold">{p.nombre}:</span><ProblemaHorario texto={p.horario} compacto /></div>
+                  ) : null
+                })}
+              </div>
+            )}
             <ul className="divide-y divide-noche/5">
               {ps.map((p) => (
                 <li key={p.key} className="space-y-2 p-3">

@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { CATEGORIAS_SUGERIDAS, MAX_PAREJAS, MIN_PAREJAS, nuevoId, parsearParejas, type Categoria } from '../../lib/torneo'
+import { useState, type FormEvent } from 'react'
+import { Check, Clock, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  CATEGORIAS_SUGERIDAS, MAX_PAREJAS, MIN_PAREJAS, clavePareja, jugadoresDe, nombrePropio, nuevoId, type Categoria, type Pareja,
+} from '../../lib/torneo'
 import { Alerta, Button, Card, Field, Input, Textarea } from '../ui'
 
 type Props = { cat: Categoria; cambiar: (f: (c: Categoria) => Categoria) => void }
@@ -34,55 +36,89 @@ export function PasoDatos({ cat, cambiar }: Props) {
 }
 
 export function PasoParejas({ cat, cambiar }: Props) {
-  const [texto, setTexto] = useState('')
-  const [edit, setEdit] = useState<{ id: string; nombre: string } | null>(null)
-  const nuevas = parsearParejas(texto)
-  const lugar = Math.max(0, MAX_PAREJAS - cat.parejas.length)
-  const aAgregar = nuevas.slice(0, lugar)
+  const vacio = { j1: '', j2: '', horario: '' }
+  const [form, setForm] = useState(vacio)
+  const [editando, setEditando] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const lleno = cat.parejas.length >= MAX_PAREJAS && !editando
 
-  const agregar = () => {
-    if (!aAgregar.length) return
-    cambiar((c) => ({ ...c, parejas: [...c.parejas, ...aAgregar.map((nombre) => ({ id: nuevoId(), nombre }))] }))
-    setTexto('')
+  function guardar(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+    const j1 = nombrePropio(form.j1)
+    const j2 = nombrePropio(form.j2)
+    if (!j1 || !j2) return setError('Completá los dos jugadores.')
+    if (clavePareja(j1, '') === clavePareja(j2, '')) return setError('Los dos jugadores no pueden ser la misma persona.')
+    const clave = clavePareja(j1, j2)
+    const repetida = cat.parejas.find((p) => p.id !== editando && clavePareja(...jugadoresDe(p)) === clave)
+    if (repetida) return setError(`Esa pareja ya está inscripta: ${repetida.nombre}.`)
+    if (!editando && cat.parejas.length >= MAX_PAREJAS) return setError(`El máximo es ${MAX_PAREJAS} parejas.`)
+    const datos = { nombre: `${j1} / ${j2}`, jugador1: j1, jugador2: j2, horario: form.horario.trim() }
+    cambiar((c) => ({
+      ...c,
+      parejas: editando
+        ? c.parejas.map((p) => (p.id === editando ? { ...p, ...datos } : p))
+        : [...c.parejas, { id: nuevoId(), ...datos }],
+    }))
+    setForm(vacio)
+    setEditando(null)
+    document.getElementById('jugador1')?.focus()
   }
-  const quitar = (id: string) =>
+
+  function editar(p: Pareja) {
+    const [a, b] = jugadoresDe(p)
+    setForm({ j1: a, j2: b, horario: p.horario ?? '' })
+    setEditando(p.id)
+    setError('')
+    document.getElementById('jugador1')?.focus()
+  }
+
+  const quitar = (id: string) => {
+    if (editando === id) { setEditando(null); setForm(vacio) }
     cambiar((c) => ({ ...c, parejas: c.parejas.filter((p) => p.id !== id), zonas: c.zonas.map((z) => z.filter((x) => x !== id)) }))
-  const renombrar = () => {
-    if (!edit || !edit.nombre.trim()) return
-    cambiar((c) => ({ ...c, parejas: c.parejas.map((p) => (p.id === edit.id ? { ...p, nombre: edit.nombre.trim() } : p)) }))
-    setEdit(null)
   }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-      <Card className="space-y-3">
-        <Field label="Agregar parejas" hint="Una por línea, o separadas por punto y coma. Ej: Juan Pérez / Luis Gómez; Juan Galeano / Marcos Francés">
-          <Textarea rows={8} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={'Juan Pérez / Luis Gómez\nJuan Galeano / Marcos Francés'} />
-        </Field>
-        {nuevas.length > lugar && (
-          <Alerta tipo="aviso">
-            El máximo es {MAX_PAREJAS} parejas: {lugar ? `se van a agregar solo las primeras ${lugar}.` : 'ya está completo.'}
-          </Alerta>
-        )}
-        <Button onClick={agregar} disabled={!aAgregar.length}><Plus className="h-4 w-4" aria-hidden /> Agregar {aAgregar.length || ''} {aAgregar.length === 1 ? 'pareja' : 'parejas'}</Button>
+      <Card>
+        <form onSubmit={guardar} className="space-y-3">
+          <h2 className="font-display text-2xl font-bold">{editando ? 'Editar pareja' : 'Inscribir pareja'}</h2>
+          <Field label="Jugador 1 *">
+            <Input id="jugador1" value={form.j1} onChange={(e) => setForm({ ...form, j1: e.target.value })} placeholder="Nombre y apellido" autoComplete="off" disabled={lleno} />
+          </Field>
+          <Field label="Jugador 2 *">
+            <Input value={form.j2} onChange={(e) => setForm({ ...form, j2: e.target.value })} placeholder="Nombre y apellido" autoComplete="off" disabled={lleno} />
+          </Field>
+          <Field label="Problemas de horarios" hint="Opcional. Dejalo vacío si no tienen.">
+            <Textarea rows={3} value={form.horario} onChange={(e) => setForm({ ...form, horario: e.target.value })}
+              placeholder="Ej: No pueden el viernes antes de las 20 hs" disabled={lleno} />
+          </Field>
+          {error && <Alerta tipo="error">{error}</Alerta>}
+          {lleno && <Alerta tipo="aviso">Ya hay {MAX_PAREJAS} parejas, que es el máximo.</Alerta>}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={lleno}>
+              {editando ? <><Check className="h-4 w-4" aria-hidden /> Guardar cambios</> : <><Plus className="h-4 w-4" aria-hidden /> Inscribir pareja</>}
+            </Button>
+            {editando && <Button type="button" variante="secundario" onClick={() => { setEditando(null); setForm(vacio); setError('') }}>Cancelar</Button>}
+          </div>
+          <p className="text-xs text-noche/55">Los nombres se guardan con mayúscula inicial (JUaN perez → Juan Perez).</p>
+        </form>
       </Card>
       <Card>
         <h2 className="font-display text-2xl font-bold">Inscriptas <span className="num text-noche/50">({cat.parejas.length}/{MAX_PAREJAS})</span></h2>
         {cat.parejas.length < MIN_PAREJAS && (
           <div className="mt-2"><Alerta tipo="aviso">Se necesitan al menos {MIN_PAREJAS} parejas para continuar (faltan {MIN_PAREJAS - cat.parejas.length}).</Alerta></div>
         )}
-        {cat.parejas.length === 0 ? <p className="mt-2 text-sm text-noche/55">Todavía no cargaste parejas.</p> : (
+        {cat.parejas.length === 0 ? <p className="mt-2 text-sm text-noche/55">Todavía no inscribiste parejas.</p> : (
           <ol className="mt-2 divide-y divide-noche/5">
             {cat.parejas.map((p, k) => (
-              <li key={p.id} className="flex items-center gap-2 py-2 text-sm">
-                <span className="num w-6 text-noche/40">{k + 1}</span>
-                {edit?.id === p.id ? (
-                  <Input value={edit.nombre} onChange={(e) => setEdit({ ...edit, nombre: e.target.value })} autoFocus className="py-1"
-                    onKeyDown={(e) => { if (e.key === 'Enter') renombrar(); if (e.key === 'Escape') setEdit(null) }} onBlur={renombrar} />
-                ) : (
-                  <span className="flex-1 font-medium">{p.nombre}</span>
-                )}
-                <button onClick={() => setEdit({ id: p.id, nombre: p.nombre })} aria-label={`Editar ${p.nombre}`} className="p-1 text-noche/45 hover:text-cancha"><Pencil className="h-3.5 w-3.5" /></button>
+              <li key={p.id} className={`flex items-start gap-2 py-2 text-sm ${editando === p.id ? 'bg-cancha-suave/60' : ''}`}>
+                <span className="num w-6 pt-0.5 text-noche/40">{k + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{p.nombre}</p>
+                  {p.horario && <ProblemaHorario texto={p.horario} />}
+                </div>
+                <button onClick={() => editar(p)} aria-label={`Editar ${p.nombre}`} className="p-1 text-noche/45 hover:text-cancha"><Pencil className="h-3.5 w-3.5" /></button>
                 <button onClick={() => quitar(p.id)} aria-label={`Quitar ${p.nombre}`} className="p-1 text-noche/45 hover:text-red"><Trash2 className="h-3.5 w-3.5" /></button>
               </li>
             ))}
@@ -90,5 +126,15 @@ export function PasoParejas({ cat, cambiar }: Props) {
         )}
       </Card>
     </div>
+  )
+}
+
+/** Problema de horario resaltado (se usa en parejas, zonas y horarios) */
+export function ProblemaHorario({ texto, compacto = false }: { texto: string; compacto?: boolean }) {
+  return (
+    <p className={`mt-1 flex gap-1.5 rounded-md bg-amber-100 px-2 py-1 font-medium text-amber-900 ring-1 ring-amber-300 ${compacto ? 'text-[11px]' : 'text-xs'}`}>
+      <Clock className={`${compacto ? 'h-3 w-3' : 'h-3.5 w-3.5'} mt-px shrink-0`} aria-hidden />
+      <span className="whitespace-pre-line">{texto}</span>
+    </p>
   )
 }

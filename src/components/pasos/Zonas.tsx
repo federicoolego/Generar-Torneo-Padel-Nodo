@@ -1,12 +1,14 @@
 import { ArrowDown, ArrowUp, ListOrdered, Plus, Shuffle, Trash2 } from 'lucide-react'
 import { LETRAS, clasificados, sugerirZonas, type Categoria } from '../../lib/torneo'
 import { Button, Card, Select } from '../ui'
+import { ProblemaHorario } from './Datos'
 
 type Props = { cat: Categoria; cambiar: (f: (c: Categoria) => Categoria) => void }
 
 export default function PasoZonas({ cat, cambiar }: Props) {
   const zonas = cat.zonas
   const nombre = (id: string) => cat.parejas.find((p) => p.id === id)?.nombre ?? '—'
+  const horarioDe = (id: string) => cat.parejas.find((p) => p.id === id)?.horario ?? ''
   const ubicadas = new Set(zonas.flat())
   const sinZona = cat.parejas.filter((p) => !ubicadas.has(p.id))
   const setZonas = (f: (z: string[][]) => string[][]) => cambiar((c) => ({ ...c, zonas: f(c.zonas) }))
@@ -66,6 +68,7 @@ export default function PasoZonas({ cat, cambiar }: Props) {
               {sinZona.map((p) => (
                 <li key={p.id} className="rounded-xl bg-white p-3 ring-1 ring-noche/10">
                   <p className="text-sm font-semibold">{p.nombre}</p>
+                  {p.horario && <ProblemaHorario texto={p.horario} />}
                   <Select className="mt-2 py-1.5 text-sm" value={-1} onChange={(e) => asignar(p.id, Number(e.target.value))} disabled={!zonas.length} aria-label={`Zona para ${p.nombre}`}>
                     {opciones(-1)}
                   </Select>
@@ -90,6 +93,7 @@ export default function PasoZonas({ cat, cambiar }: Props) {
                       <span className="num mt-0.5 w-5 shrink-0 font-display text-lg font-bold text-noche/40">{pi + 1}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold">{nombre(id)}</p>
+                        {horarioDe(id) && <ProblemaHorario texto={horarioDe(id)} compacto />}
                         <Select className="mt-1.5 py-1 text-xs" value={zi} onChange={(e) => asignar(id, Number(e.target.value))} aria-label={`Mover ${nombre(id)}`}>
                           {opciones(zi)}
                         </Select>
