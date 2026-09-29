@@ -1,0 +1,91 @@
+// PDF del cronograma de partidos (A4), generado en el navegador para poder compartirlo
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { diaLargo, formatoPesos, rangoFechas, type Categoria } from './torneo'
+import { filasCronograma } from './cronograma'
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const tituloDia = (f: string) => `${diaLargo(f)} de ${MESES[Number(f.slice(5, 7)) - 1]}`
+const rgb = (hex: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number]
+
+export function pdfCronograma(
+  cat: Categoria,
+  logo: string | null,
+  colores: { oscuro: string; acento: string; suave: string },
+): Blob {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const M = 12
+  const ancho = doc.internal.pageSize.getWidth()
+  const filas = filasCronograma(cat)
+  const conSede = filas.some((f) => f.sede)
+
+  // encabezado
+  let x = M
+  if (logo) {
+    doc.setFillColor(...rgb(colores.oscuro))
+    doc.roundedRect(M, M, 20, 20, 2, 2, 'F')
+    doc.addImage(logo, 'PNG', M + 1, M + 1, 18, 18)
+    x = M + 25
+  }
+  doc.setTextColor(...rgb(colores.oscuro))
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18)
+  doc.text(cat.torneo || 'Torneo', x, M + 7, { maxWidth: ancho - x - M })
+  const datos = [cat.categoria, rangoFechas(cat.fechaInicio, cat.fechaFin), cat.inscripcion ? `Inscripción ${formatoPesos(cat.inscripcion)} por jugador` : '']
+    .filter(Boolean).join('  ·  ')
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(40, 40, 40)
+  doc.text(datos, x, M + 13.5, { maxWidth: ancho - x - M })
+  if (cat.observacion) {
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(80, 80, 80)
+    doc.text(cat.observacion, x, M + 18.5, { maxWidth: ancho - x - M })
+  }
+  doc.setDrawColor(...rgb(colores.oscuro)); doc.setLineWidth(0.8)
+  doc.line(M, M + 23, ancho - M, M + 23)
+  let y = M + 30
+
+  const dias = [...new Set(filas.map((f) => f.fecha))]
+  for (const d of dias) {
+    const del = filas.filter((f) => f.fecha === d)
+    if (y > 262) { doc.addPage(); y = M + 6 }
+    // título del día
+    doc.setFillColor(...rgb(colores.acento)); doc.rect(M, y - 4.2, 1.6, 5.6, 'F')
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5); doc.setTextColor(...rgb(colores.oscuro))
+    const t = d ? tituloDia(d) : 'Sin día asignado'
+    doc.text(t, M + 3.5, y)
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12.5)
+    const anchoT = doc.getTextWidth(t)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(110, 110, 110)
+    doc.text(`${del.length} partido${del.length === 1 ? '' : 's'}`, M + 5.5 + anchoT, y)
+
+    const cab = ['Hora', ...(conSede ? ['Complejo'] : []), 'Partido', 'Pareja', '', 'Pareja', 'Resultado']
+    autoTable(doc, {
+      startY: y + 2.5,
+      margin: { left: M, right: M },
+      head: [cab],
+      body: del.map((f) => [f.hora || '—', ...(conSede ? [f.sede || '—'] : []), f.etapa, f.a, 'vs', f.b, '']),
+      theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 9.5, cellPadding: 2.4, textColor: [20, 20, 20], lineColor: [150, 150, 150], lineWidth: 0.2, valign: 'middle', minCellHeight: 10 },
+      headStyles: { fillColor: rgb(colores.oscuro), textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8, minCellHeight: 7 },
+      alternateRowStyles: { fillColor: rgb(colores.suave) },
+      columnStyles: {
+        0: { cellWidth: 15, fontStyle: 'bold', fontSize: 11, halign: 'center' },
+        ...(conSede ? { 1: { cellWidth: 22 } } : {}),
+        [conSede ? 2 : 1]: { cellWidth: 28, fontStyle: 'bold', fontSize: 8.5 },
+        [conSede ? 4 : 3]: { cellWidth: 8, halign: 'center', textColor: [120, 120, 120], fontSize: 8 },
+        [cab.length - 1]: { cellWidth: 36, fillColor: [255, 255, 255] },
+      },
+    })
+    // @ts-expect-error lastAutoTable lo agrega el plugin
+    y = (doc.lastAutoTable.finalY as number) + 10
+  }
+  if (!filas.length) { doc.setFontSize(11); doc.text('Todavía no hay partidos: armá las zonas.', M, y) }
+
+  // pie en cada hoja
+  const n = doc.getNumberOfPages()
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120)
+    doc.text(`Cronograma de partidos · ${cat.torneo} · ${cat.categoria}`, M, 290)
+    doc.text(`Hoja ${i} de ${n}`, ancho - M, 290, { align: 'right' })
+  }
+  return doc.output('blob')
+}
