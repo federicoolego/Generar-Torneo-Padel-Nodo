@@ -102,21 +102,31 @@ function icono(ctx: CanvasRenderingContext2D, nombre: keyof typeof ICONOS, x: nu
   ctx.restore()
 }
 
-/** Encabezado con logo, torneo, categoría, fechas, inscripción y el título de la imagen. Devuelve la altura usada */
+/** Encabezado con logo, torneo, categoría, fechas, inscripción y el título de la imagen (arriba a la derecha). Devuelve la altura usada */
 function encabezado(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cat: Categoria, titulo: string, medir = false): number {
   const logoTam = 168
   const x = MARGEN + logoTam + 36
   const anchoTexto = ANCHO - x - MARGEN
-  const sangria = 62   // lugar para el ícono del título
+  const sangria = 62   // lugar para los íconos
+  // etiqueta ZONAS / PLAYOFF fija arriba a la derecha: el título no la invade
+  ctx.font = `700 26px ${TEXTO}`
+  const etiqueta = titulo.toUpperCase()
+  const anchoEtiqueta = ctx.measureText(etiqueta).width + 36
   ctx.font = `700 64px ${DISPLAY}`
-  const lt = lineas(ctx, cat.torneo || 'Torneo', anchoTexto - sangria)
+  const lt = lineas(ctx, cat.torneo || 'Torneo', anchoTexto - sangria - anchoEtiqueta - 20)
   const fechas = rangoFechas(cat.fechaInicio, cat.fechaFin)
   const insc = cat.inscripcion ? `Inscripción ${formatoPesos(cat.inscripcion)} por jugador` : ''
-  const alto = Math.max(logoTam + 2 * 44, 44 + lt.length * 64 + 56 + (fechas ? 42 : 0) + (insc ? 42 : 0) + 20 + 44 + 44)
+  const alto = Math.max(logoTam + 2 * 44, 44 + lt.length * 64 + 60 + (fechas ? 58 : 0) + (insc ? 44 : 0) + 30)
   if (medir) return alto
   ctx.fillStyle = C.noche
   ctx.fillRect(0, 0, ANCHO, alto)
   ctx.drawImage(img, MARGEN, (alto - logoTam) / 2, logoTam, logoTam)
+  // etiqueta
+  const ex = ANCHO - MARGEN + 24 - anchoEtiqueta
+  rect(ctx, ex, 28, anchoEtiqueta, 44, 22, C.lima)
+  ctx.fillStyle = C.noche
+  ctx.font = `700 26px ${TEXTO}`
+  ctx.fillText(etiqueta, ex + 18, 59)
   let y = 44 + 56
   // título con trofeo
   icono(ctx, 'trofeo', x, y - 50, 50, C.lima)
@@ -128,26 +138,21 @@ function encabezado(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cat: C
   ctx.font = `600 48px ${DISPLAY}`
   ctx.fillStyle = C.lima
   ctx.fillText(recortar(ctx, cat.categoria || 'Categoría', anchoTexto - sangria), x + sangria, y + 6)
-  y += 30
-  ctx.font = `500 28px ${TEXTO}`
-  ctx.fillStyle = 'rgba(255,255,255,0.85)'
+  y += 6
+  // fechas: mismo tamaño que la categoría
   if (fechas) {
-    icono(ctx, 'calendario', x + 12, y + 8, 28, C.lima)
-    ctx.fillText(recortar(ctx, fechas, anchoTexto - sangria), x + sangria, y + 32)
-    y += 42
+    icono(ctx, 'calendario', x + 6, y + 18, 38, C.lima)
+    ctx.font = `600 48px ${DISPLAY}`
+    ctx.fillStyle = C.blanco
+    ctx.fillText(recortar(ctx, fechas, anchoTexto - sangria), x + sangria, y + 56)
+    y += 58
   }
   if (insc) {
-    icono(ctx, 'ticket', x + 12, y + 8, 28, C.lima)
-    ctx.font = `600 28px ${TEXTO}`
-    ctx.fillStyle = C.blanco
-    ctx.fillText(recortar(ctx, insc, anchoTexto - sangria), x + sangria, y + 32)
-    y += 42
+    icono(ctx, 'ticket', x + 10, y + 16, 30, C.lima)
+    ctx.font = `600 30px ${TEXTO}`
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'
+    ctx.fillText(recortar(ctx, insc, anchoTexto - sangria), x + sangria, y + 42)
   }
-  ctx.font = `700 26px ${TEXTO}`
-  const w = ctx.measureText(titulo.toUpperCase()).width + 36
-  rect(ctx, x + sangria, y + 4, w, 44, 22, C.lima)
-  ctx.fillStyle = C.noche
-  ctx.fillText(titulo.toUpperCase(), x + sangria + 18, y + 35)
   return alto
 }
 
