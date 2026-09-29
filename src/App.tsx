@@ -18,7 +18,7 @@ export default function App() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <button onClick={() => setAbierta(null)} className="flex items-center gap-3 text-left">
             <img src={logoUrl()} alt="NODO Club de Pádel & Co." className="h-10 w-10 rounded-lg" />
-            <span className="font-display text-xl font-bold leading-none">Generador de zonas y playoff</span>
+            <span className="font-display text-xl font-bold leading-none">Generador de Torneos</span>
           </button>
           <button onClick={() => { salir(); setLogueado(false) }} aria-label="Cerrar sesión" className="text-white/70 hover:text-white">
             <LogOut className="h-5 w-5" />

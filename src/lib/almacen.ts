@@ -1,11 +1,11 @@
-import type { Categoria } from './torneo'
+import { normalizar, type Categoria } from './torneo'
 
 // Todo queda guardado en el navegador (no hay base de datos)
 const CLAVE = 'nodo-generador:categorias:v1'
 
 export function cargarTodas(): Categoria[] {
   try {
-    return (JSON.parse(localStorage.getItem(CLAVE) ?? '[]') as Categoria[]).sort((a, b) => b.actualizado - a.actualizado)
+    return (JSON.parse(localStorage.getItem(CLAVE) ?? '[]') as Categoria[]).map(normalizar).sort((a, b) => b.actualizado - a.actualizado)
   } catch {
     return []
   }
