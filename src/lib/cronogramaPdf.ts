@@ -11,7 +11,7 @@ const rgb = (hex: string): [number, number, number] => [1, 3, 5].map((i) => pars
 export function pdfCronograma(
   cat: Categoria,
   logo: string | null,
-  colores: { oscuro: string; acento: string; suave: string },
+  colores: { oscuro: string; acento: string; suave: string; fondoLogo?: string },
 ): Blob {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const M = 12
@@ -22,8 +22,9 @@ export function pdfCronograma(
   // encabezado
   let x = M
   if (logo) {
-    doc.setFillColor(...rgb(colores.oscuro))
-    doc.roundedRect(M, M, 20, 20, 2, 2, 'F')
+    doc.setFillColor(...rgb(colores.fondoLogo ?? colores.oscuro))
+    doc.setDrawColor(210, 210, 210); doc.setLineWidth(0.2)
+    doc.roundedRect(M, M, 20, 20, 2, 2, 'FD')
     doc.addImage(logo, 'PNG', M + 1, M + 1, 18, 18)
     x = M + 25
   }
@@ -68,10 +69,10 @@ export function pdfCronograma(
       alternateRowStyles: { fillColor: rgb(colores.suave) },
       columnStyles: {
         0: { cellWidth: 15, fontStyle: 'bold', fontSize: 11, halign: 'center' },
-        ...(conSede ? { 1: { cellWidth: 22 } } : {}),
+        ...(conSede ? { 1: { cellWidth: 26, fontSize: 9 } } : {}),
         [conSede ? 2 : 1]: { cellWidth: 28, fontStyle: 'bold', fontSize: 8.5 },
         [conSede ? 4 : 3]: { cellWidth: 8, halign: 'center', textColor: [120, 120, 120], fontSize: 8 },
-        [cab.length - 1]: { cellWidth: 36, fillColor: [255, 255, 255] },
+        [cab.length - 1]: { cellWidth: conSede ? 32 : 36, fillColor: [255, 255, 255] },
       },
     })
     // @ts-expect-error lastAutoTable lo agrega el plugin
@@ -86,6 +87,9 @@ export function pdfCronograma(
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120)
     doc.text(`Cronograma de partidos · ${cat.torneo} · ${cat.categoria}`, M, 290)
     doc.text(`Hoja ${i} de ${n}`, ancho - M, 290, { align: 'right' })
+    // marca de agua
+    doc.setFontSize(7.5); doc.setTextColor(160, 160, 160)
+    doc.text('Desarrollado por Federico Olego', ancho / 2, 294, { align: 'center' })
   }
   return doc.output('blob')
 }

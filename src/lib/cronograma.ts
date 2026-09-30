@@ -45,7 +45,7 @@ const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
  * Documento HTML listo para imprimir (A4) o abrir en Word.
  * `logo` = URL (o data URL) del logo; se omite si no hay.
  */
-export function htmlCronograma(cat: Categoria, logo: string | null, colores: { oscuro: string; acento: string; suave: string }): string {
+export function htmlCronograma(cat: Categoria, logo: string | null, colores: { oscuro: string; acento: string; suave: string; fondoLogo?: string }): string {
   const filas = filasCronograma(cat)
   const conSede = filas.some((f) => f.sede)
   const dias = [...new Set(filas.map((f) => f.fecha))]
@@ -79,7 +79,7 @@ export function htmlCronograma(cat: Categoria, logo: string | null, colores: { o
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 11pt; margin: 0; padding: 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   header { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid ${colores.oscuro}; padding-bottom: 10px; margin-bottom: 6px; }
-  header img { width: 64px; height: 64px; object-fit: contain; border-radius: 8px; background: ${colores.oscuro}; }
+  header img { width: 64px; height: 64px; object-fit: contain; border-radius: 8px; background: ${colores.fondoLogo ?? colores.oscuro}; border: 1px solid #ddd; }
   h1 { font-size: 20pt; margin: 0; color: ${colores.oscuro}; }
   .datos { margin: 2px 0 0; font-size: 11pt; color: #333; }
   .obs { margin: 6px 0 0; font-size: 10pt; color: #444; font-style: italic; }
@@ -96,6 +96,7 @@ export function htmlCronograma(cat: Categoria, logo: string | null, colores: { o
   td.res { background: #fff !important; }
   col.c-hora { width: 9%; } col.c-sede { width: 12%; } col.c-etapa { width: 13%; } col.c-vs { width: 4%; } col.c-res { width: 20%; }
   footer { margin-top: 14px; font-size: 8.5pt; color: #777; }
+  .marca { margin-top: 10px; text-align: center; font-size: 8pt; color: #aaa; }
   .acciones { margin: 0 0 12px; }
   .acciones button { font-size: 12pt; padding: 8px 14px; margin-right: 8px; cursor: pointer; }
   @media print { .acciones { display: none; } body { padding: 0; } }
@@ -112,6 +113,7 @@ export function htmlCronograma(cat: Categoria, logo: string | null, colores: { o
   </header>
   ${filas.length ? tablas : '<p>Todavía no hay partidos: armá las zonas.</p>'}
   <footer>Cronograma de partidos · orden cronológico · generado el ${new Date().toLocaleString('es-AR', { hour12: false })}</footer>
+  <p class="marca">Desarrollado por Federico Olego</p>
 </body></html>`
 }
 

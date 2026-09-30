@@ -183,7 +183,11 @@ function pie(ctx: CanvasRenderingContext2D, y: number) {
   ctx.fillStyle = C.gris
   ctx.font = `500 22px ${TEXTO}`
   ctx.textAlign = 'center'
-  ctx.fillText('NODO Club de Pádel & Co.', ANCHO / 2, y)
+  ctx.fillText('NODO Club de Pádel & Co.', ANCHO / 2, y - 16)
+  // marca de agua
+  ctx.font = `500 17px ${TEXTO}`
+  ctx.fillStyle = 'rgba(0,0,0,0.38)'
+  ctx.fillText('Desarrollado por Federico Olego', ANCHO / 2, y + 14)
   ctx.textAlign = 'left'
 }
 
