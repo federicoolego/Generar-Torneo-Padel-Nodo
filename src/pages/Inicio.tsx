@@ -3,6 +3,7 @@ import { Copy, Download, Plus, Trash2, Upload } from 'lucide-react'
 import { cargarTodas, eliminar, exportar, guardar, importar } from '../lib/almacen'
 import { nuevaCategoria, nuevoId, rangoFechas } from '../lib/torneo'
 import { Alerta, Button, Titulo, Vacio } from '../components/ui'
+import Instructivo from '../components/Instructivo'
 
 export default function Inicio({ onAbrir }: { onAbrir: (id: string) => void }) {
   const [lista, setLista] = useState(cargarTodas())
@@ -44,6 +45,7 @@ export default function Inicio({ onAbrir }: { onAbrir: (id: string) => void }) {
       <Titulo bajada="Cada torneo (de una categoría) se arma por separado. Todo queda guardado en este navegador." accion={<Button onClick={nueva}><Plus className="h-4 w-4" aria-hidden /> Nuevo torneo</Button>}>
         Torneos
       </Titulo>
+      <Instructivo />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Button variante="secundario" onClick={descargarRespaldo} disabled={!lista.length}><Download className="h-4 w-4" aria-hidden /> Exportar respaldo</Button>
         <Button variante="secundario" onClick={() => archivo.current?.click()}><Upload className="h-4 w-4" aria-hidden /> Importar respaldo</Button>
