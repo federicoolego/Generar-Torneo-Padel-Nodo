@@ -7,7 +7,7 @@
  * Importante: como es una app sin servidor, esto es una barrera de acceso, no una protección
  * de datos. No hay datos que proteger: todo lo que se carga queda solo en el navegador de quien lo usa.
  */
-export const CREDENCIAL = { sal: '06cae7c69ac391403305539be1baea77', hash: 'accf33fbd26265a15f47394ca60ed6a2a5b2a909dc2c0d7e9299129940ac18e4', iteraciones: 310000 }
+export const CREDENCIAL = { sal: '907d658f3c63fab2b5f30cbf68be5177', hash: '2d96afbf8a0232c87936179b2b0a8765bdf5819e2514ce0f48fe7e0f1c9ef637', iteraciones: 310000 }
 
 const CLAVE_SESION = 'nodo-generador:sesion'
 const DURACION_MS = 12 * 60 * 60 * 1000   // 12 horas
