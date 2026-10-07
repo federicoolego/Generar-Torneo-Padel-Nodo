@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ingresar } from '../lib/auth'
 import { Alerta, Button, Field, Input } from '../components/ui'
-import { logoUrl } from '../App'
+import { Firma, logoUrl } from '../App'
 
 export default function Login({ onOk }: { onOk: () => void }) {
   const [usuario, setUsuario] = useState('')
@@ -37,6 +37,7 @@ export default function Login({ onOk }: { onOk: () => void }) {
           {error && <Alerta tipo="error">{error}</Alerta>}
           <Button type="submit" cargando={cargando} className="w-full">Ingresar</Button>
         </form>
+        <div className="[&>p]:text-white/50"><Firma /></div>
       </div>
     </div>
   )

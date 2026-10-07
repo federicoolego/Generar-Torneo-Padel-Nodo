@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # para leer las variables VITE_* cargadas en el environment github-pages
+    environment: github-pages
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,6 +30,8 @@ jobs:
         env:
           # El sitio vive en https://<usuario>.github.io/<repo>/. Con dominio propio, poné BASE_PATH: /
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

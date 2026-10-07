@@ -1,7 +1,6 @@
 // Cronograma imprimible de partidos (orden cronológico, con columna para anotar resultados)
-import {
-  LETRAS, diaLargo, erroresCuadro, formatoPesos, partidosDeZona, rangoFechas, rondasPlayoff, type Categoria, type Horario,
-} from './torneo'
+import { diaLargo, formatoPesos, rangoFechas, type Categoria, type Horario } from './torneo'
+import { resolverTorneo, textoResultado } from './resultados'
 
 export interface FilaCronograma {
   fecha: string          // '' = sin fecha
@@ -11,27 +10,27 @@ export interface FilaCronograma {
   a: string
   b: string
   orden: number          // para desempatar a igual horario
+  resultado: string      // "6-4 3-6 10-8" si ya se cargó (vacío para anotar a mano)
 }
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 const tituloDia = (f: string) => `${diaLargo(f)} de ${MESES[Number(f.slice(5, 7)) - 1]}`
 
 export function filasCronograma(cat: Categoria): FilaCronograma[] {
-  const nombre = (id: string) => cat.parejas.find((p) => p.id === id)?.nombre ?? '—'
   const out: FilaCronograma[] = []
-  const h = (x?: Horario) => ({ fecha: x?.fecha ?? '', hora: x?.hora ?? '', sede: (x as Horario & { sede?: string })?.sede ?? '' })
+  const h = (x?: Horario) => ({ fecha: x?.fecha ?? '', hora: x?.hora ?? '', sede: x?.sede ?? '' })
+  // nombres reales a medida que se conocen (ganadores de zona, clasificados, cruces) y resultados cargados
+  const res = resolverTorneo(cat)
   let orden = 0
-  cat.zonas.forEach((z, zi) => {
-    for (const p of partidosDeZona(z, zi, nombre)) {
-      out.push({ ...h(cat.horariosZona[p.key]), etapa: `Zona ${LETRAS[zi]} · ${p.codigo}`, a: p.a, b: p.b, orden: orden++ })
+  for (const z of res.zonas) {
+    for (const p of z.partidos) {
+      out.push({ ...h(cat.horariosZona[p.key]), etapa: p.titulo, a: p.etiquetaA, b: p.etiquetaB, orden: orden++, resultado: p.estado === 'jugado' ? textoResultado(p.resultado) : '' })
     }
-  })
-  if (cat.cuadro && erroresCuadro(cat.cuadro, cat.zonas).length === 0) {
-    for (const r of rondasPlayoff(cat.cuadro)) {
-      for (const p of r) {
-        if (p.bye) continue
-        out.push({ ...h(cat.horariosPlayoff[p.key]), etapa: p.titulo, a: p.a, b: p.b, orden: 1000 + orden++ })
-      }
+  }
+  for (const r of res.playoff ?? []) {
+    for (const p of r) {
+      if (p.bye) continue
+      out.push({ ...h(cat.horariosPlayoff[p.key]), etapa: p.titulo, a: p.etiquetaA, b: p.etiquetaB, orden: 1000 + orden++, resultado: p.estado === 'jugado' ? textoResultado(p.resultado) : '' })
     }
   }
   return out.sort((x, y) =>
@@ -59,21 +58,21 @@ export function htmlCronograma(cat: Categoria, logo: string | null, colores: { o
       <tbody>
         ${del.map((f) => `<tr>
           <td class="hora">${esc(f.hora || '—')}</td>${conSede ? `<td>${esc(f.sede || '—')}</td>` : ''}
-          <td class="etapa">${esc(f.etapa)}</td><td>${esc(f.a)}</td><td class="vs">vs</td><td>${esc(f.b)}</td><td class="res"></td>
+          <td class="etapa">${esc(f.etapa)}</td><td>${esc(f.a)}</td><td class="vs">vs</td><td>${esc(f.b)}</td><td class="res">${esc(f.resultado)}</td>
         </tr>`).join('')}
       </tbody>
     </table>`
   }).join('')
 
   const datos = [
-    cat.categoria && `<strong>${esc(cat.categoria)}</strong>`,
-    rangoFechas(cat.fechaInicio, cat.fechaFin) && esc(rangoFechas(cat.fechaInicio, cat.fechaFin)),
+    rangoFechas(cat.fechaInicio, cat.fechaFin) && `<strong>${esc(rangoFechas(cat.fechaInicio, cat.fechaFin))}</strong>`,
     cat.inscripcion && `Inscripción ${esc(formatoPesos(cat.inscripcion))} por jugador`,
+    cat.premio && `Premio: ${esc(cat.premio)}`,
   ].filter(Boolean).join(' · ')
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Partidos · ${esc(cat.torneo)} · ${esc(cat.categoria)}</title>
+<title>Partidos · ${esc(cat.torneo)}</title>
 <style>
   @page { size: A4 portrait; margin: 12mm; }
   * { box-sizing: border-box; }
@@ -93,7 +92,7 @@ export function htmlCronograma(cat: Categoria, logo: string | null, colores: { o
   td.hora { font-weight: bold; font-size: 12pt; white-space: nowrap; text-align: center; }
   td.etapa { font-weight: bold; white-space: nowrap; font-size: 9.5pt; }
   td.vs { text-align: center; color: #777; font-size: 9pt; }
-  td.res { background: #fff !important; }
+  td.res { background: #fff !important; font-weight: bold; text-align: center; }
   col.c-hora { width: 9%; } col.c-sede { width: 12%; } col.c-etapa { width: 13%; } col.c-vs { width: 4%; } col.c-res { width: 20%; }
   footer { margin-top: 14px; font-size: 8.5pt; color: #777; }
   .marca { margin-top: 10px; text-align: center; font-size: 8pt; color: #aaa; }

@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { Check, Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
-  CATEGORIAS_SUGERIDAS, MAX_PAREJAS, MIN_PAREJAS, clavePareja, formatoPesos, jugadoresDe, nombrePropio, nuevoId, type Categoria, type Pareja,
+  MAX_PAREJAS, MIN_PAREJAS, clavePareja, formatoPesos, jugadoresDe, nombrePropio, nuevoId, type Categoria, type Pareja,
 } from '../../lib/torneo'
 import { Alerta, Button, Card, Field, Input, Textarea } from '../ui'
+import { FormatosPorInstancia } from '../Formato'
+import { instanciasDelTorneo, textoFormatos, zonasBloqueadas } from '../../lib/resultados'
 
 type Props = { cat: Categoria; cambiar: (f: (c: Categoria) => Categoria) => void }
 
@@ -12,7 +14,7 @@ export function PasoDatos({ cat, cambiar }: Props) {
   return (
     <Card className="space-y-4">
       <Field label="Nombre del torneo *">
-        <Input value={cat.torneo} onChange={(e) => cambiar((c) => ({ ...c, torneo: e.target.value }))} placeholder="Ej: Torneo Primavera 2026" />
+        <Input value={cat.torneo} onChange={(e) => cambiar((c) => ({ ...c, torneo: e.target.value }))} placeholder="Ej: 7ma Caballeros - Torneo Primavera" />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Fecha de inicio *">
@@ -22,18 +24,27 @@ export function PasoDatos({ cat, cambiar }: Props) {
           <Input type="date" value={cat.fechaFin} min={cat.fechaInicio || undefined} onChange={(e) => cambiar((c) => ({ ...c, fechaFin: e.target.value }))} />
         </Field>
       </div>
-      <Field label="Categoría *" hint="Elegí de la lista o escribí la que quieras.">
-        <Input value={cat.categoria} onChange={(e) => cambiar((c) => ({ ...c, categoria: e.target.value }))} list="categorias" placeholder="Ej: 7ma Damas, Suma 12 Mixto" />
-        <datalist id="categorias">{CATEGORIAS_SUGERIDAS.map((x) => <option key={x} value={x} />)}</datalist>
-      </Field>
       <Field label="Inscripción por jugador" hint="Opcional. Si la completás, aparece en las imágenes.">
         <Input inputMode="numeric" value={formatoPesos(cat.inscripcion)} placeholder="Ej: $17.000"
           onChange={(e) => cambiar((c) => ({ ...c, inscripcion: e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 9) }))} />
       </Field>
+      <Field label="Premio" hint="Opcional. Si lo completás, aparece en las imágenes.">
+        <Input value={cat.premio} maxLength={80} onChange={(e) => cambiar((c) => ({ ...c, premio: e.target.value }))} placeholder="Ej: 50% de lo recaudado" />
+      </Field>
+      <div>
+        <p className="mb-1 text-sm font-medium text-noche">Formato de partido por instancia</p>
+        <p className="mb-2 text-xs text-noche/60">Se usa para validar los resultados. También se puede cambiar después, en cada instancia del paso “Partidos”.</p>
+        <FormatosPorInstancia cat={cat} cambiar={cambiar} />
+      </div>
       <Field label="Observación" hint="Opcional. Aparece en las imágenes.">
         <Textarea rows={3} value={cat.observacion} onChange={(e) => cambiar((c) => ({ ...c, observacion: e.target.value }))}
           placeholder="Ej: Americano a 9 games. Semifinales y final al mejor de 3 sets, el 3er set es un tiebreak." />
       </Field>
+      <Button type="button" variante="fantasma" className="-mt-2 px-2 py-1 text-xs"
+        onClick={() => (!cat.observacion.trim() || confirm('Se reemplaza la observación actual. ¿Continuar?')) &&
+          cambiar((c) => ({ ...c, observacion: textoFormatos(c, instanciasDelTorneo(c)) }))}>
+        Escribir los formatos en la observación
+      </Button>
       <p className="text-xs text-noche/55">* Obligatorio</p>
     </Card>
   )
@@ -45,6 +56,9 @@ export function PasoParejas({ cat, cambiar }: Props) {
   const [editando, setEditando] = useState<string | null>(null)
   const [error, setError] = useState('')
   const lleno = cat.parejas.length >= MAX_PAREJAS && !editando
+  // no se puede quitar una pareja de una zona que ya tiene resultados
+  const bloq = zonasBloqueadas(cat)
+  const fija = (id: string) => cat.zonas.some((z, zi) => bloq[zi] && z.includes(id))
 
   function guardar(e: FormEvent) {
     e.preventDefault()
@@ -123,7 +137,7 @@ export function PasoParejas({ cat, cambiar }: Props) {
                   {p.horario && <ProblemaHorario texto={p.horario} />}
                 </div>
                 <button onClick={() => editar(p)} aria-label={`Editar ${p.nombre}`} className="p-1 text-noche/45 hover:text-cancha"><Pencil className="h-3.5 w-3.5" /></button>
-                <button onClick={() => quitar(p.id)} aria-label={`Quitar ${p.nombre}`} className="p-1 text-noche/45 hover:text-red"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => quitar(p.id)} disabled={fija(p.id)} title={fija(p.id) ? 'Su zona ya tiene resultados' : undefined} aria-label={`Quitar ${p.nombre}`} className="p-1 text-noche/45 hover:text-red disabled:opacity-25"><Trash2 className="h-3.5 w-3.5" /></button>
               </li>
             ))}
           </ol>

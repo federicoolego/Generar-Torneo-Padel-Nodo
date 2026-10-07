@@ -1,53 +1,39 @@
 /**
- * Acceso con usuario y contraseña fijos.
- *
- * En el código NO está la contraseña: solo un hash PBKDF2-SHA256 (310.000 iteraciones, con sal).
- * Para cambiarla:  npm run hash-password -- NODO 'NuevaClave'  y reemplazá CREDENCIAL.
- *
- * Importante: como es una app sin servidor, esto es una barrera de acceso, no una protección
- * de datos. No hay datos que proteger: todo lo que se carga queda solo en el navegador de quien lo usa.
+ * Acceso con Supabase Auth: un usuario fijo (NODO) creado en Authentication → Users.
+ * El usuario se traduce a email: NODO → nodo@generador.nodo.com.ar
+ * Además del login, el email tiene que estar en la tabla torneos_nodo_usuarios (RLS).
  */
-export const CREDENCIAL = { sal: '907d658f3c63fab2b5f30cbf68be5177', hash: '2d96afbf8a0232c87936179b2b0a8765bdf5819e2514ce0f48fe7e0f1c9ef637', iteraciones: 310000 }
+import { supabase } from './supabase'
 
-const CLAVE_SESION = 'nodo-generador:sesion'
-const DURACION_MS = 12 * 60 * 60 * 1000   // 12 horas
-
-const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('')
-const deHex = (h: string) => new Uint8Array(h.match(/../g)!.map((x) => parseInt(x, 16)))
-
-async function derivar(usuario: string, pass: string): Promise<string> {
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(`${usuario.trim().toUpperCase()}\n${pass}`), 'PBKDF2', false, ['deriveBits'])
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', hash: 'SHA-256', salt: deHex(CREDENCIAL.sal), iterations: CREDENCIAL.iteraciones }, base, 256)
-  return hex(bits)
-}
-
-/** Comparación en tiempo constante */
-function iguales(a: string, b: string) {
-  if (a.length !== b.length) return false
-  let d = 0
-  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return d === 0
+export const DOMINIO = 'generador.nodo.com.ar'
+const aEmail = (u: string) => {
+  const x = u.trim().toLowerCase()
+  return x.includes('@') ? x : `${x}@${DOMINIO}`
 }
 
 export async function ingresar(usuario: string, pass: string): Promise<boolean> {
-  const ok = iguales(await derivar(usuario, pass), CREDENCIAL.hash)
-  if (ok) {
-    try { localStorage.setItem(CLAVE_SESION, JSON.stringify({ hasta: Date.now() + DURACION_MS, h: CREDENCIAL.hash.slice(0, 16) })) } catch { /* sin storage */ }
-  }
-  return ok
-}
-
-export function sesionActiva(): boolean {
-  try {
-    const s = JSON.parse(localStorage.getItem(CLAVE_SESION) ?? 'null') as { hasta: number; h: string } | null
-    // si se cambia la contraseña (otro hash), las sesiones viejas dejan de valer
-    return !!s && s.hasta > Date.now() && s.h === CREDENCIAL.hash.slice(0, 16)
-  } catch {
+  const { error } = await supabase.auth.signInWithPassword({ email: aEmail(usuario), password: pass })
+  if (error) return false
+  // que además esté habilitado para estas tablas
+  const { data, error: e2 } = await supabase.rpc('torneos_nodo_es_usuario')
+  if (e2 || data !== true) {
+    await supabase.auth.signOut()
     return false
   }
+  return true
 }
 
-export function salir() {
-  try { localStorage.removeItem(CLAVE_SESION) } catch { /* nada */ }
+export async function sesionActiva(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession()
+  return !!data.session
+}
+
+/** Avisa cuando se cierra la sesión (vencida o desde otra pestaña). Devuelve la función para dejar de escuchar */
+export function alCerrarSesion(cb: () => void): () => void {
+  const { data } = supabase.auth.onAuthStateChange((_e, s) => { if (!s) cb() })
+  return () => data.subscription.unsubscribe()
+}
+
+export async function salir() {
+  await supabase.auth.signOut()
 }

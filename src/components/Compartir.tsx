@@ -50,7 +50,7 @@ export default function Compartir({ cat, avisos }: { cat: Categoria; avisos: str
     const files = lista.map((i) => i.file)
     if (puedeCompartir(files)) {
       try {
-        await navigator.share({ files, title: `${cat.torneo} · ${cat.categoria}` })
+        await navigator.share({ files, title: cat.torneo })
       } catch { /* el usuario canceló */ }
     } else {
       lista.forEach(descargar)
@@ -78,7 +78,7 @@ export default function Compartir({ cat, avisos }: { cat: Categoria; avisos: str
       <div className="grid gap-4 sm:grid-cols-2">
         {imgs.map((i) => (
           <figure key={i.url} className="overflow-hidden rounded-xl bg-white ring-1 ring-noche/10">
-            <img src={i.url} alt={`${i.titulo} · ${cat.categoria}`} className="w-full" />
+            <img src={i.url} alt={`${i.titulo} · ${cat.torneo}`} className="w-full" />
             <figcaption className="flex items-center justify-between gap-2 p-3">
               <span className="font-semibold">{i.titulo}</span>
               <span className="flex gap-1">

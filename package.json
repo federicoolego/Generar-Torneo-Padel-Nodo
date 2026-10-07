@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "hash-password": "node scripts/hash-password.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.447.0",
