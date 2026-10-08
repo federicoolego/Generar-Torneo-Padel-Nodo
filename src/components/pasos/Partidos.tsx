@@ -266,7 +266,7 @@ function CargaPartido({ p, horario, onGuardar, onHorario }: {
             <span />
             {Array.from({ length: n }, (_, i) => (
               <span key={i} className="text-center text-[10px] font-semibold uppercase text-noche/50">
-                {esAmericano(p.formato) ? 'Games' : i === 2 && p.formato === 'mejor_de_3_stb' ? 'S. TB' : `Set ${i + 1}`}
+                {esAmericano(p.formato) ? 'Games' : i === 2 && p.formato === 'mejor_de_3_stb' ? 'S. TB 11' : `Set ${i + 1}`}
               </span>
             ))}
             {(['a', 'b'] as const).map((l, k) => (

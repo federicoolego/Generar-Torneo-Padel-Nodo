@@ -25,10 +25,12 @@ const setNormal = (x: number, y: number) => {
   const w = Math.max(x, y), l = Math.min(x, y)
   return (w === 6 && l <= 4) || (w === 7 && (l === 5 || l === 6))
 }
-/** Super tiebreak (a 10 u 11): 10-8, 11-9, 12-10… (diferencia de 2) */
+/** Puntos del super tiebreak (3er set del formato "mejor_de_3_stb") */
+export const SUPER_TB = 11
+/** Super tiebreak a 11 con 2 de diferencia: 11-0…11-9; si llegan 10-10, se sigue hasta sacar 2 (12-10, 13-11…) */
 const superTb = (x: number, y: number) => {
   const w = Math.max(x, y), l = Math.min(x, y)
-  return w >= 10 && w - l >= 2 && (w <= 11 || w - l === 2)
+  return w === SUPER_TB ? l <= SUPER_TB - 2 : w > SUPER_TB && w - l === 2
 }
 
 const sinResultado: Evaluacion = { ok: false, setsA: 0, setsB: 0, gamesA: 0, gamesB: 0 }
@@ -63,7 +65,7 @@ export function evaluar(f: Formato, r: Pick<Resultado, 'sets' | 'wo'>): Evaluaci
     if (sa === 2 || sb === 2) return { ...sinResultado, error: 'El partido ya estaba definido en 2 sets: sobra el 3ro.' }
     const stb = i === 2 && f === 'mejor_de_3_stb'
     if (stb ? !superTb(x, y) : !setNormal(x, y)) {
-      return { ...sinResultado, error: stb ? `Super tiebreak inválido (${x}-${y}): a 10, con 2 de diferencia.` : `Set ${i + 1} inválido (${x}-${y}).` }
+      return { ...sinResultado, error: stb ? `Super tiebreak inválido (${x}-${y}): es a ${SUPER_TB}, con 2 de diferencia (ej. ${SUPER_TB}-${SUPER_TB - 3} o ${SUPER_TB + 2}-${SUPER_TB}).` : `Set ${i + 1} inválido (${x}-${y}).` }
     }
     if (x > y) sa++; else sb++
     // el super tiebreak cuenta como un game para el que lo gana
@@ -324,7 +326,7 @@ export function textoFormatos(cat: Categoria, instancias: Instancia[]): string {
     else grupos.push({ inst: [i], f })
   }
   const desc: Record<Formato, string> = {
-    mejor_de_3: 'al mejor de 3 sets', mejor_de_3_stb: 'al mejor de 3 sets, el 3ro es super tiebreak', americano_7: 'americano a 7 games', americano_9: 'americano a 9 games',
+    mejor_de_3: 'al mejor de 3 sets', mejor_de_3_stb: `al mejor de 3 sets, el 3ro es super tiebreak a ${SUPER_TB}`, americano_7: 'americano a 7 games', americano_9: 'americano a 9 games',
   }
   return grupos.map((g) => {
     const ns = g.inst.map((i) => nombres[i])

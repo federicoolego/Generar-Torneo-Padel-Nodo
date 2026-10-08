@@ -55,7 +55,7 @@ export type Instancia = 'zonas' | '16avos' | 'octavos' | 'cuartos' | 'semifinal'
 
 export const FORMATOS: { id: Formato; nombre: string; corto: string }[] = [
   { id: 'mejor_de_3', nombre: 'Al mejor de 3 sets', corto: 'Mejor de 3 sets' },
-  { id: 'mejor_de_3_stb', nombre: 'Al mejor de 3 sets, el 3ro super tiebreak', corto: 'Mejor de 3 · 3ro super TB' },
+  { id: 'mejor_de_3_stb', nombre: 'Al mejor de 3 sets, el 3ro super tiebreak a 11', corto: 'Mejor de 3 · 3ro super TB a 11' },
   { id: 'americano_7', nombre: 'Americano a 7 games', corto: 'Americano a 7' },
   { id: 'americano_9', nombre: 'Americano a 9 games', corto: 'Americano a 9' },
 ]
