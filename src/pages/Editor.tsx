@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, CloudUpload, Loader2, Share2 } from 'lucide-react'
 import { cargar, escucharGuardado, estadoGuardado, guardar, vaciar, type EstadoGuardado } from '../lib/almacen'
 import {
-  MAX_PAREJAS, MIN_PAREJAS, erroresCuadro, firmaZonas, horarioCompleto, partidosDeZona, rangoFechas, rondasPlayoff, type Categoria,
+  MAX_PAREJAS, MIN_PAREJAS, datosCompletos, erroresCuadro, firmaZonas, horarioCompleto, partidosDeZona, rangoFechas, rondasPlayoff, type Categoria,
 } from '../lib/torneo'
 import { resolverTorneo } from '../lib/resultados'
 import { Alerta, Button, Modal, Spinner } from '../components/ui'
@@ -15,18 +15,22 @@ import PasoPartidos from '../components/pasos/Partidos'
 // Imágenes va última y separada a la derecha
 const PASOS = ['Torneo', 'Parejas', 'Zonas', 'Playoff', 'Partidos', 'Imágenes'] as const
 
-export default function Editor({ id, onVolver }: { id: string; onVolver: () => void }) {
-  const [cat, setCat] = useState<Categoria | null>(null)
+/** `inicial`: torneo nuevo, todavía no guardado. Se crea en la base recién cuando se completan los datos obligatorios */
+export default function Editor({ id, inicial, onVolver }: { id: string; inicial?: Categoria; onVolver: () => void }) {
+  const [cat, setCat] = useState<Categoria | null>(inicial ?? null)
+  // false mientras el torneo nuevo no tenga nombre y fechas: no se manda nada a la base
+  const persistido = useRef(!inicial)
   const [errorCarga, setErrorCarga] = useState('')
   const [paso, setPaso] = useState(0)
   const [compartir, setCompartir] = useState(false)
   const guardado = useEstadoGuardado()
 
   useEffect(() => {
+    if (inicial) return
     cargar(id)
       .then((c) => (c ? setCat(c) : setErrorCarga('No se encontró el torneo (puede que lo hayan eliminado).')))
       .catch((e) => setErrorCarga(e instanceof Error ? e.message : 'No se pudo cargar el torneo.'))
-  }, [id])
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // aviso al cerrar la pestaña con cambios sin subir
   useEffect(() => {
@@ -42,13 +46,17 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
       // si cambia la forma de las zonas (cantidad o tamaños), el cuadro de playoff ya no sirve
       const n2 = firmaZonas(n.zonas) !== firmaZonas(c.zonas) ? { ...n, cuadro: null } : n
       const final = { ...n2, actualizado: Date.now() }
-      guardar(final)
+      if (persistido.current || datosCompletos(final)) {
+        persistido.current = true
+        guardar(final)
+      }
       return final
     })
   }, [])
 
   /** Sube lo pendiente y vuelve a leer el torneo (para ver lo que cargaron otros) */
   const recargar = useCallback(async () => {
+    if (!persistido.current) return
     await vaciar()
     const c = await cargar(id)
     if (c) setCat(c)
@@ -70,7 +78,7 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
     const terminado = cuadroOk && !!resolverTorneo(cat).campeon
     return {
       ok: [
-        !!cat.torneo.trim() && !!cat.fechaInicio && !!cat.fechaFin && cat.fechaFin >= cat.fechaInicio,
+        datosCompletos(cat),
         cat.parejas.length >= MIN_PAREJAS && cat.parejas.length <= MAX_PAREJAS,
         zonasOk && sinHorarioZ === 0,
         cuadroOk && sinHorarioP === 0,
@@ -79,7 +87,7 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
       ],
       // lo mínimo para avanzar: torneo, parejas y zonas armadas (los horarios se pueden completar después)
       listo: [
-        !!cat.torneo.trim() && !!cat.fechaInicio && !!cat.fechaFin && cat.fechaFin >= cat.fechaInicio,
+        datosCompletos(cat),
         cat.parejas.length >= MIN_PAREJAS && cat.parejas.length <= MAX_PAREJAS,
         zonasOk,
       ],
@@ -108,7 +116,7 @@ export default function Editor({ id, onVolver }: { id: string; onVolver: () => v
     <>
       <div className="mb-3 flex items-center justify-between gap-3">
         <button onClick={volver} className="inline-flex items-center gap-1 text-sm font-semibold text-cancha"><ArrowLeft className="h-4 w-4" aria-hidden /> Torneos</button>
-        <IndicadorGuardado {...guardado} />
+        {persistido.current ? <IndicadorGuardado {...guardado} /> : <span className="text-xs text-noche/55">Sin guardar · se crea al completar nombre y fechas</span>}
       </div>
       <h1 className="font-display text-4xl font-bold leading-none">{cat.torneo || 'Nuevo torneo'}</h1>
       <p className="mb-5 mt-1 text-sm text-noche/60">

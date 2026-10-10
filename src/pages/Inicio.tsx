@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CloudUpload, Copy, Plus, Trash2 } from 'lucide-react'
-import { duplicar, eliminar, guardarAhora, listar, migrarLocales, torneosLocales, type ResumenTorneo } from '../lib/almacen'
-import { nuevaCategoria, rangoFechas } from '../lib/torneo'
+import { duplicar, eliminar, listar, migrarLocales, torneosLocales, type ResumenTorneo } from '../lib/almacen'
+import { rangoFechas } from '../lib/torneo'
 import { Alerta, Button, Spinner, Titulo, Vacio } from '../components/ui'
 import Instructivo from '../components/Instructivo'
 
-export default function Inicio({ onAbrir }: { onAbrir: (id: string) => void }) {
+export default function Inicio({ onAbrir, onNuevo }: { onAbrir: (id: string) => void; onNuevo: () => void }) {
   const [lista, setLista] = useState<ResumenTorneo[] | null>(null)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'error'; txt: string } | null>(null)
   const [ocupado, setOcupado] = useState(false)
@@ -29,11 +29,8 @@ export default function Inicio({ onAbrir }: { onAbrir: (id: string) => void }) {
     setMsg({ tipo: 'ok', txt: `Torneos de este navegador subidos a la base: ${r.nuevos} nuevo(s), ${r.actualizados} actualizado(s), ${r.sinCambios} ya estaban.` })
   })
 
-  const nueva = () => accion(async () => {
-    const c = nuevaCategoria()
-    await guardarAhora(c)
-    onAbrir(c.id)
-  })
+  // no se guarda nada todavía: el torneo se crea al completar los datos obligatorios
+  const nueva = () => onNuevo()
 
   return (
     <>

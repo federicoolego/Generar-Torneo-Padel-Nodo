@@ -4,6 +4,7 @@ import { alCerrarSesion, salir, sesionActiva } from './lib/auth'
 import { configurado } from './lib/supabase'
 import { vaciar } from './lib/almacen'
 import { Alerta, Spinner } from './components/ui'
+import { nuevaCategoria, type Categoria } from './lib/torneo'
 import Login from './pages/Login'
 import Inicio from './pages/Inicio'
 import Editor from './pages/Editor'
@@ -17,6 +18,10 @@ export function Firma() {
 export default function App() {
   const [logueado, setLogueado] = useState<boolean | null>(null)
   const [abierta, setAbierta] = useState<string | null>(null)
+  // torneo nuevo todavía sin guardar: se crea en la base recién con los datos obligatorios completos
+  const [nuevo, setNuevo] = useState<Categoria | null>(null)
+  const abrir = (id: string | null) => { setNuevo(null); setAbierta(id) }
+  const crear = () => { const c = nuevaCategoria(); setNuevo(c); setAbierta(c.id) }
 
   useEffect(() => {
     if (!configurado) return
@@ -37,7 +42,7 @@ export default function App() {
     <div className="min-h-screen pb-28">
       <header className="sticky top-0 z-30 bg-noche text-white" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <button onClick={async () => { await vaciar(); setAbierta(null) }} className="flex items-center gap-3 text-left">
+          <button onClick={async () => { await vaciar(); abrir(null) }} className="flex items-center gap-3 text-left">
             <img src={logoUrl()} alt="NODO Club de Pádel & Co." className="h-10 w-10 rounded-lg" />
             <span className="font-display text-xl font-bold leading-none">Generador de Torneos</span>
           </button>
@@ -47,7 +52,7 @@ export default function App() {
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6">
-        {abierta ? <Editor key={abierta} id={abierta} onVolver={() => setAbierta(null)} /> : <Inicio onAbrir={setAbierta} />}
+        {abierta ? <Editor key={abierta} id={abierta} inicial={nuevo ?? undefined} onVolver={() => abrir(null)} /> : <Inicio onAbrir={abrir} onNuevo={crear} />}
       </main>
       <Firma />
     </div>

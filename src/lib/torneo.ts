@@ -116,6 +116,10 @@ export function nuevoId(): string {
 }
 export const esUuid = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
 
+/** Datos obligatorios del paso "Torneo": nombre y fechas (fin igual o posterior al inicio). Recién ahí se crea en la base */
+export const datosCompletos = (c: Pick<Categoria, 'torneo' | 'fechaInicio' | 'fechaFin'>) =>
+  !!c.torneo.trim() && !!c.fechaInicio && !!c.fechaFin && c.fechaFin >= c.fechaInicio
+
 export function nuevaCategoria(): Categoria {
   return {
     id: nuevoId(), torneo: '', fechaInicio: '', fechaFin: '', observacion: '', inscripcion: '', premio: '', parejas: [], zonas: [],
